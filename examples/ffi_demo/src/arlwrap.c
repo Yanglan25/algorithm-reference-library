@@ -4,22 +4,10 @@
 // simply fetches the pointer from Python and calls that.
 //
 
-#include <stdlib.h>
-#include <string.h>
 #include <Python.h>
 
 #include "arlwrap.h"
 
-#ifdef __GNUC__
-#define ARL_TLS __thread
-#else
-#define ARL_TLS
-#endif
-static ARL_TLS int arl_bypass_ = 0;
-static ARL_TLS int arl_bypass_check_ = 0;
-
-void void_routine(__VA_ARGS__) {
-}
 // in: fname: same as the *NamedTuple* containing the FFI memory address of a
 // Python routine.
 // E.G.: Python routine 'arl_restore_cube_fii', NamedTuple 'arl_restore_cube' =>
@@ -31,26 +19,9 @@ void void_routine(__VA_ARGS__) {
 size_t bk_getfn(const char* fname)
 {
   size_t res=0;
-  PyObject *m, *pyfn, *fnaddress;
   PyGILState_STATE gilstate = PyGILState_Ensure();
   
-	
-  /* Return immediately if the environment variable
-   * has already been checked. */
-  if (!arl_bypass_check_) {
-      char* flag = getenv("ARL_BYPASS_FFI");
-      arl_bypass_check_ = 1;
-      if (flag && (
-              !strcmp(flag, "TRUE") ||
-              !strcmp(flag, "true") ||
-              !strcmp(flag, "1") ))
-          arl_bypass_ = 1;
-  }
-	// call 'void' routine if ARL_BYPASS_FFI is set
-	if (arl_bypass_) {
-		return &void_routine;
-	}
-
+  PyObject *m, *pyfn, *fnaddress;
   if(!(  m= PyImport_ImportModule("arlwrap") ))
     goto failed;
   if(!( pyfn = PyObject_GetAttrString(m, fname)))
@@ -76,7 +47,6 @@ size_t bk_getfn(const char* fname)
 void arl_initialize(void)
 {
   Py_Initialize();
-  PyEval_InitThreads();
 }
 
 
@@ -85,11 +55,16 @@ void arl_initialize(void)
 #define BKFNPY(F)  (* ( void (*)() )(bk_getfn( #F ))) 
 
 
-// NB: The CFFI acquires GIL
 void helper_get_image_shape(const double *frequency, double cellsize,
 		int *shape)
 {
         BKFNPY(helper_get_image_shape)(frequency, cellsize, shape);
+}
+
+void helper_get_image_shape_multifreq(ARLConf *lowconf, double cellsize,
+		int npixel, int *shape)
+{
+        BKFNPY(helper_get_image_shape_multifreq)(lowconf, cellsize, npixel, shape);
 }
 
 void helper_set_image_params(const ARLVis *vis, Image *image) {
@@ -106,11 +81,28 @@ void arl_create_visibility(ARLConf *lowconf, ARLVis *res_vis)
 	BKFNPY(arl_create_visibility)(lowconf, res_vis);
 }
 
+void arl_create_blockvisibility(ARLConf *lowconf, ARLVis *res_vis)
+{
+	BKFNPY(arl_create_blockvisibility)(lowconf, res_vis);
+}
+
+void arl_advise_wide_field(ARLConf *lowconf, ARLVis *res_vis, ARLadvice *adv)
+{
+	BKFNPY(arl_advise_wide_field)(lowconf, res_vis, adv);
+}
+
+
 
 void arl_create_test_image(const double *frequency, double cellsize, char *phasecentre,
 		Image *res_img)
 {
 	BKFNPY(arl_create_test_image)(frequency, cellsize, phasecentre, res_img);
+}
+
+void arl_create_low_test_image_from_gleam(ARLConf *lowconf, double cellsize, int npixel, char *phasecentre,
+		Image *res_img)
+{
+	BKFNPY(arl_create_low_test_image_from_gleam)(lowconf, cellsize, npixel, phasecentre, res_img);
 }
 
 void arl_copy_visibility(const ARLVis *visin,
@@ -142,6 +134,7 @@ void helper_get_nbases(char * config_name, ant_t * nbases)
 {
   BKFNPY(helper_get_nbases)(config_name, nbases);
 }
+
 
 
 

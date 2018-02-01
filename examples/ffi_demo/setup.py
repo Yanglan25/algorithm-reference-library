@@ -16,6 +16,10 @@ assert sys.version_info[0] >= 3
 ffi_demo = Extension('ffi_demo', sources = ['src/ffi_demo.c', 'src/arlwrap.c', 'src/wrap_support.c'],
         undef_macros = ['NDEBUG'], extra_compile_args = ['-Wno-strict-prototypes'])
 
+ical_demo = Extension('ical_demo', sources = ['src/ical_demo.c', 'src/arlwrap.c', 'src/wrap_support.c'],
+        undef_macros = ['NDEBUG'], extra_compile_args = ['-Wno-strict-prototypes'])
+
+
 starpu_timg = Extension('timg_starpu', sources = ['starpu_timg/timg_starpu.c',
     'starpu_timg/timg_pu_routines.c', 'src/arlwrap.c', 'src/wrap_support.c'],
         include_dirs = ['{home}/.local/starpu/include/starpu/1.2'.format(home=os.getenv('HOME'))],
@@ -44,6 +48,6 @@ setup(name='FFI_Demo',
     version='0.1',
     python_requires='>=3',
     description = "Demo for compilation of FFI-wrapped Python callable from C",
-    ext_modules = [ffi_demo, starpu_timg, libarlffi],
+    ext_modules = [ffi_demo, ical_demo, starpu_timg, libarlffi],
     cmdclass = {'build_ext': CFFIBuild})
 
